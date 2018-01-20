@@ -16,8 +16,8 @@ var num = function (from, to) {
     return ar;
 };
 function setup() {
-    createCanvas(800, 500);
-    world = new GameWithWrapAround(80, 50);
+    createCanvas(1400, 800);
+    world = new GameWithWrapAround(280, 160);
     background(255);
 }
 var PAUSE = true;
@@ -34,6 +34,9 @@ function keyPressed() {
     else if (keyCode === 17) {
         world.step();
     }
+    else if (keyCode === 71) {
+        world.toggleGrid();
+    }
 }
 function mouseClicked() {
     world.click(mouseX, mouseY);
@@ -45,6 +48,7 @@ function mouseDragged() {
 }
 var Grid = (function () {
     function Grid(columns, rows) {
+        this.shouldDrawGrid = false;
         this.columns = columns;
         this.rows = rows;
     }
@@ -54,10 +58,15 @@ var Grid = (function () {
     Grid.prototype.rowSize = function () {
         return height / this.rows;
     };
-    Grid.prototype.display = function () {
+    Grid.prototype.toggleGrid = function () {
+        this.shouldDrawGrid = !this.shouldDrawGrid;
+    };
+    Grid.prototype.drawGrid = function () {
+        if (!this.shouldDrawGrid) {
+            return;
+        }
         var columnSize = this.columnSize();
         var rowSize = this.rowSize();
-        rect(0, 0, width - 1, height - 1);
         num(1, this.rows).forEach(function (row) {
             line(0, row * rowSize, width, row * rowSize);
         });
@@ -65,13 +74,23 @@ var Grid = (function () {
             line(column * columnSize, 0, column * columnSize, height);
         });
     };
+    Grid.prototype.drawBackGround = function () {
+        rect(0, 0, width - 1, height - 1);
+    };
+    Grid.prototype.display = function () {
+        this.drawBackGround();
+        this.drawGrid();
+    };
     return Grid;
 }());
 var GameOfLife = (function (_super) {
     __extends(GameOfLife, _super);
     function GameOfLife(columns, rows) {
         var _this = _super.call(this, columns, rows) || this;
-        _this.lastDragXY = { x: -1, y: -1 };
+        _this.lastDragXY = {
+            x: -1,
+            y: -1
+        };
         _this.cellWidth = _super.prototype.columnSize.call(_this);
         _this.cellHeight = _super.prototype.rowSize.call(_this);
         _this.cells = num(0, columns).map(function (e) { return num(0, rows).map(function (isAlive) { return random() > 0.5; }); });
@@ -130,13 +149,16 @@ var GameOfLife = (function (_super) {
     };
     GameOfLife.prototype.display = function () {
         var _this = this;
-        _super.prototype.display.call(this);
+        this.drawBackGround();
         fill(100);
+        noStroke();
         this.cells.forEach(function (row, w) { return row.forEach(function (isAlive, h) {
             if (isAlive) {
                 rect(w * _this.cellWidth, h * _this.cellHeight, _this.cellWidth, _this.cellHeight);
             }
         }); });
+        stroke(0);
+        this.drawGrid();
         fill(255);
     };
     return GameOfLife;
@@ -162,7 +184,7 @@ var GameWithWrapAround = (function (_super) {
         else if (y >= this.rows) {
             y = 0;
         }
-        return _super.prototype.isCellAlive.call(this, x, y);
+        return this.cells[x][y] ? 1 : 0;
     };
     return GameWithWrapAround;
 }(GameOfLife));

@@ -6,15 +6,15 @@ const num = (from: number, to: number) => {
 }
 
 function setup() {
-  createCanvas(800, 500);
-  // world = new GOL(64, 36);
-  world = new GameWithWrapAround(80, 50);
+  createCanvas(1400, 800);
+  world = new GameWithWrapAround(280, 160);
   background(255);
-  // frameRate(15);
+  // frameRate(30);
 }
 let PAUSE = true;
+
 function draw() {
-  if (!PAUSE){
+  if (!PAUSE) {
     world.step();
   }
   world.display();
@@ -23,8 +23,10 @@ function draw() {
 function keyPressed() {
   if (keyCode === 32) {
     PAUSE = !PAUSE;
-  }else if(keyCode === 17){
+  } else if (keyCode === 17) {
     world.step();
+  } else if (keyCode === 71) {
+    world.toggleGrid();
   }
 }
 
@@ -32,6 +34,7 @@ function mouseClicked() {
   world.click(mouseX, mouseY);
   return false;
 }
+
 function mouseDragged() {
   world.clickDrag(mouseX, mouseY);
   return false;
@@ -44,22 +47,35 @@ class Grid {
     this.columns = columns;
     this.rows = rows;
   }
-  columnSize(){
+  columnSize() {
     return width / this.columns;
   }
-  rowSize(){
+  rowSize() {
     return height / this.rows;
   }
-  display() {
+  shouldDrawGrid = false;
+  toggleGrid() {
+    this.shouldDrawGrid = !this.shouldDrawGrid;
+  }
+  drawGrid() {
+    if (!this.shouldDrawGrid) {
+      return;
+    }
     let columnSize = this.columnSize();
     let rowSize = this.rowSize();
-    rect(0, 0, width - 1, height - 1);
     num(1, this.rows).forEach(row => {
       line(0, row * rowSize, width, row * rowSize);
     });
     num(1, this.columns).forEach(column => {
       line(column * columnSize, 0, column * columnSize, height);
     });
+  }
+  drawBackGround() {
+    rect(0, 0, width - 1, height - 1);
+  }
+  display() {
+    this.drawBackGround();
+    this.drawGrid()
   }
 }
 class GameOfLife extends Grid {
@@ -80,21 +96,27 @@ class GameOfLife extends Grid {
   click(mouseX: number, mouseY: number) {
     let cellX = Math.floor(mouseX / this.cellWidth);
     let cellY = Math.floor(mouseY / this.cellHeight);
-    if(this.lastDragXY.x === cellX && this.lastDragXY.y === cellY){
+    if (this.lastDragXY.x === cellX && this.lastDragXY.y === cellY) {
       return;
     }
-    this.flipCell(cellX,cellY);
+    this.flipCell(cellX, cellY);
   }
-  lastDragXY:{x:number,y:number} = {x:-1,y:-1};
-  clickDrag(mouseX: number, mouseY: number){
+  lastDragXY: {
+    x: number,
+    y: number
+  } = {
+    x: -1,
+    y: -1
+  };
+  clickDrag(mouseX: number, mouseY: number) {
     let cellX = Math.floor(mouseX / this.cellWidth);
     let cellY = Math.floor(mouseY / this.cellHeight);
-    if(this.lastDragXY.x === cellX && this.lastDragXY.y === cellY){
+    if (this.lastDragXY.x === cellX && this.lastDragXY.y === cellY) {
       return;
     }
     this.lastDragXY.x = cellX;
     this.lastDragXY.y = cellY;
-    this.flipCell(cellX,cellY);
+    this.flipCell(cellX, cellY);
   }
   isCellAlive(x: number, y: number) {
     return this.isInBounds(x, y) ? (this.cells[x][y] ? 1 : 0) : 0;
@@ -122,13 +144,16 @@ class GameOfLife extends Grid {
     this.cells = nextState;
   }
   display() {
-    super.display();
+    this.drawBackGround();
     fill(100);
+    noStroke();
     this.cells.forEach((row, w) => row.forEach((isAlive, h) => {
       if (isAlive) {
         rect(w * this.cellWidth, h * this.cellHeight, this.cellWidth, this.cellHeight);
       }
     }));
+    stroke(0);
+    this.drawGrid();
     fill(255);
   }
 }
@@ -152,6 +177,6 @@ class GameWithWrapAround extends GameOfLife {
     } else if (y >= this.rows) {
       y = 0;
     }
-    return super.isCellAlive(x, y);
+    return this.cells[x][y] ? 1 : 0;
   }
 }
