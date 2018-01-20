@@ -9,15 +9,15 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 var world;
-var num = function (st, en) {
+var num = function (from, to) {
     var ar = [];
-    while (st < en)
-        ar.push(st++);
+    while (from < to)
+        ar.push(from++);
     return ar;
 };
 function setup() {
-    createCanvas(600, 600);
-    world = new GOLWrapAround(60, 60);
+    createCanvas(800, 500);
+    world = new GameWithWrapAround(80, 50);
     background(255);
 }
 var PAUSE = true;
@@ -31,61 +31,70 @@ function keyPressed() {
     if (keyCode === 32) {
         PAUSE = !PAUSE;
     }
+    else if (keyCode === 17) {
+        world.step();
+    }
 }
 function mouseClicked() {
     world.click(mouseX, mouseY);
     return false;
 }
 var Grid = (function () {
-    function Grid(width, height) {
-        this.w = width;
-        this.h = height;
+    function Grid(columns, rows) {
+        this.columns = columns;
+        this.rows = rows;
     }
+    Grid.prototype.columnSize = function () {
+        return width / this.columns;
+    };
+    Grid.prototype.rowSize = function () {
+        return height / this.rows;
+    };
     Grid.prototype.display = function () {
-        var wSteps = width / this.w;
-        var hSteps = height / this.h;
+        var columnSize = this.columnSize();
+        var rowSize = this.rowSize();
         rect(0, 0, width - 1, height - 1);
-        num(1, this.h).forEach(function (e) {
-            line(0, e * hSteps, width, e * hSteps);
+        num(1, this.rows).forEach(function (row) {
+            line(0, row * rowSize, width, row * rowSize);
         });
-        num(1, this.w).forEach(function (e) {
-            line(e * wSteps, 0, e * wSteps, height);
+        num(1, this.columns).forEach(function (column) {
+            line(column * columnSize, 0, column * columnSize, height);
         });
     };
     return Grid;
 }());
-var GOL = (function (_super) {
-    __extends(GOL, _super);
-    function GOL(w, h) {
-        var _this = _super.call(this, w, h) || this;
-        _this.cellW = width / w;
-        _this.cellH = height / h;
-        _this.cells = num(0, w).map(function (e) { return num(0, h).map(function (isAlive) { return random() > 0.5; }); });
+var GameOfLife = (function (_super) {
+    __extends(GameOfLife, _super);
+    function GameOfLife(columns, rows) {
+        var _this = _super.call(this, columns, rows) || this;
+        _this.cellWidth = _super.prototype.columnSize.call(_this);
+        _this.cellHeight = _super.prototype.rowSize.call(_this);
+        _this.cells = num(0, columns).map(function (e) { return num(0, rows).map(function (isAlive) { return random() > 0.5; }); });
         return _this;
     }
-    GOL.prototype.flipCell = function (x, y) {
+    GameOfLife.prototype.flipCell = function (x, y) {
         if (this.isInBounds(x, y)) {
             this.cells[x][y] = !this.cells[x][y];
         }
     };
-    GOL.prototype.click = function (mouseX, mouseY) {
-        this.flipCell(Math.floor(mouseX / this.cellW), Math.floor(mouseY / this.cellH));
+    GameOfLife.prototype.click = function (mouseX, mouseY) {
+        this.flipCell(Math.floor(mouseX / this.cellWidth), Math.floor(mouseY / this.cellHeight));
     };
-    GOL.prototype.isCellAlive = function (x, y) {
+    GameOfLife.prototype.isCellAlive = function (x, y) {
         return this.isInBounds(x, y) ? (this.cells[x][y] ? 1 : 0) : 0;
     };
-    GOL.prototype.isInBounds = function (x, y) {
+    GameOfLife.prototype.isInBounds = function (x, y) {
         return x > -1 && x < this.cells.length && y > -1 && y < this.cells[0].length;
     };
-    GOL.prototype.aliveNeighborCount = function (x, y) {
+    GameOfLife.prototype.aliveNeighborCount = function (x, y) {
         return this.isCellAlive(x - 1, y - 1) + this.isCellAlive(x, y - 1) + this.isCellAlive(x + 1, y - 1) +
             this.isCellAlive(x - 1, y) + this.isCellAlive(x + 1, y) +
             this.isCellAlive(x - 1, y + 1) + this.isCellAlive(x, y + 1) + this.isCellAlive(x + 1, y + 1);
     };
-    GOL.prototype.step = function () {
+    GameOfLife.prototype.step = function () {
         var _this = this;
-        var nextState = this.cells.map(function (row, w) { return row.map(function (isAlive, h) {
-            var numberOfNeighbors = _this.aliveNeighborCount(w, h);
+        var nextState = this.cells.map(function (row, x) { return row.map(function (isAlive, y) {
+            var numberOfNeighbors = _this.aliveNeighborCount(x, y);
             if (numberOfNeighbors < 2) {
                 isAlive = false;
             }
@@ -99,42 +108,42 @@ var GOL = (function (_super) {
         }); });
         this.cells = nextState;
     };
-    GOL.prototype.display = function () {
+    GameOfLife.prototype.display = function () {
         var _this = this;
         _super.prototype.display.call(this);
         fill(100);
         this.cells.forEach(function (row, w) { return row.forEach(function (isAlive, h) {
             if (isAlive) {
-                rect(w * _this.cellW, h * _this.cellH, _this.cellW, _this.cellH);
+                rect(w * _this.cellWidth, h * _this.cellHeight, _this.cellWidth, _this.cellHeight);
             }
         }); });
         fill(255);
     };
-    return GOL;
+    return GameOfLife;
 }(Grid));
-var GOLWrapAround = (function (_super) {
-    __extends(GOLWrapAround, _super);
-    function GOLWrapAround(w, h) {
-        var _this = _super.call(this, w, h) || this;
-        _this.w = w;
-        _this.h = h;
+var GameWithWrapAround = (function (_super) {
+    __extends(GameWithWrapAround, _super);
+    function GameWithWrapAround(columns, rows) {
+        var _this = _super.call(this, columns, rows) || this;
+        _this.columns = columns;
+        _this.rows = rows;
         return _this;
     }
-    GOLWrapAround.prototype.isCellAlive = function (x, y) {
+    GameWithWrapAround.prototype.isCellAlive = function (x, y) {
         if (x < 0) {
-            x = this.w - 1;
+            x = this.columns - 1;
         }
-        else if (x >= this.w) {
+        else if (x >= this.columns) {
             x = 0;
         }
         if (y < 0) {
-            y = this.h - 1;
+            y = this.rows - 1;
         }
-        else if (y >= this.h) {
+        else if (y >= this.rows) {
             y = 0;
         }
         return _super.prototype.isCellAlive.call(this, x, y);
     };
-    return GOLWrapAround;
-}(GOL));
+    return GameWithWrapAround;
+}(GameOfLife));
 //# sourceMappingURL=sketch.js.map

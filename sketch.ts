@@ -1,14 +1,14 @@
-let world: GOL;
-const num = (st: number, en: number) => {
+let world: GameOfLife;
+const num = (from: number, to: number) => {
   let ar = [];
-  while (st < en) ar.push(st++);
+  while (from < to) ar.push(from++);
   return ar;
 }
 
 function setup() {
-  createCanvas(600, 600);
+  createCanvas(800, 500);
   // world = new GOL(64, 36);
-  world = new GOLWrapAround(60, 60);
+  world = new GameWithWrapAround(80, 50);
   background(255);
   // frameRate(15);
 }
@@ -23,6 +23,8 @@ function draw() {
 function keyPressed() {
   if (keyCode === 32) {
     PAUSE = !PAUSE;
+  }else if(keyCode === 17){
+    world.step();
   }
 }
 
@@ -32,33 +34,39 @@ function mouseClicked() {
 }
 
 class Grid {
-  h: number;
-  w: number;
-  constructor(width: number, height: number) {
-    this.w = width;
-    this.h = height;
+  rows: number;
+  columns: number;
+  constructor(columns: number, rows: number) {
+    this.columns = columns;
+    this.rows = rows;
+  }
+  columnSize(){
+    return width / this.columns;
+  }
+  rowSize(){
+    return height / this.rows;
   }
   display() {
-    let wSteps = width / this.w;
-    let hSteps = height / this.h;
+    let columnSize = this.columnSize();
+    let rowSize = this.rowSize();
     rect(0, 0, width - 1, height - 1);
-    num(1, this.h).forEach(e => {
-      line(0, e * hSteps, width, e * hSteps);
+    num(1, this.rows).forEach(row => {
+      line(0, row * rowSize, width, row * rowSize);
     });
-    num(1, this.w).forEach(e => {
-      line(e * wSteps, 0, e * wSteps, height);
+    num(1, this.columns).forEach(column => {
+      line(column * columnSize, 0, column * columnSize, height);
     });
   }
 }
-class GOL extends Grid {
+class GameOfLife extends Grid {
   cells: boolean[][];
-  cellW: number;
-  cellH: number;
-  constructor(w: number, h: number) {
-    super(w, h);
-    this.cellW = width / w;
-    this.cellH = height / h;
-    this.cells = num(0, w).map(e => num(0, h).map(isAlive => random() > 0.5));
+  cellWidth: number;
+  cellHeight: number;
+  constructor(columns: number, rows: number) {
+    super(columns, rows);
+    this.cellWidth = super.columnSize();
+    this.cellHeight = super.rowSize();
+    this.cells = num(0, columns).map(e => num(0, rows).map(isAlive => random() > 0.5));
   }
   flipCell(x: number, y: number) {
     if (this.isInBounds(x, y)) {
@@ -66,7 +74,7 @@ class GOL extends Grid {
     }
   }
   click(mouseX: number, mouseY: number) {
-    this.flipCell(Math.floor(mouseX / this.cellW), Math.floor(mouseY / this.cellH));
+    this.flipCell(Math.floor(mouseX / this.cellWidth), Math.floor(mouseY / this.cellHeight));
   }
   isCellAlive(x: number, y: number) {
     return this.isInBounds(x, y) ? (this.cells[x][y] ? 1 : 0) : 0;
@@ -80,8 +88,8 @@ class GOL extends Grid {
       this.isCellAlive(x - 1, y + 1) + this.isCellAlive(x, y + 1) + this.isCellAlive(x + 1, y + 1);
   }
   step() {
-    let nextState: boolean[][] = this.cells.map((row, w) => row.map((isAlive, h) => {
-      let numberOfNeighbors = this.aliveNeighborCount(w, h);
+    let nextState: boolean[][] = this.cells.map((row, x) => row.map((isAlive, y) => {
+      let numberOfNeighbors = this.aliveNeighborCount(x, y);
       if (numberOfNeighbors < 2) {
         isAlive = false;
       } else if (numberOfNeighbors === 3) {
@@ -98,30 +106,30 @@ class GOL extends Grid {
     fill(100);
     this.cells.forEach((row, w) => row.forEach((isAlive, h) => {
       if (isAlive) {
-        rect(w * this.cellW, h * this.cellH, this.cellW, this.cellH);
+        rect(w * this.cellWidth, h * this.cellHeight, this.cellWidth, this.cellHeight);
       }
     }));
     fill(255);
   }
 }
 
-class GOLWrapAround extends GOL {
-  w: number;
-  h: number;
-  constructor(w: number, h: number) {
-    super(w, h);
-    this.w = w;
-    this.h = h;
+class GameWithWrapAround extends GameOfLife {
+  columns: number;
+  rows: number;
+  constructor(columns: number, rows: number) {
+    super(columns, rows);
+    this.columns = columns;
+    this.rows = rows;
   }
   isCellAlive(x: number, y: number) {
     if (x < 0) {
-      x = this.w - 1;
-    } else if (x >= this.w) {
+      x = this.columns - 1;
+    } else if (x >= this.columns) {
       x = 0;
     }
     if (y < 0) {
-      y = this.h - 1;
-    } else if (y >= this.h) {
+      y = this.rows - 1;
+    } else if (y >= this.rows) {
       y = 0;
     }
     return super.isCellAlive(x, y);
