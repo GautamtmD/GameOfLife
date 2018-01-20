@@ -32,6 +32,10 @@ function mouseClicked() {
   world.click(mouseX, mouseY);
   return false;
 }
+function mouseDragged() {
+  world.clickDrag(mouseX, mouseY);
+  return false;
+}
 
 class Grid {
   rows: number;
@@ -74,7 +78,23 @@ class GameOfLife extends Grid {
     }
   }
   click(mouseX: number, mouseY: number) {
-    this.flipCell(Math.floor(mouseX / this.cellWidth), Math.floor(mouseY / this.cellHeight));
+    let cellX = Math.floor(mouseX / this.cellWidth);
+    let cellY = Math.floor(mouseY / this.cellHeight);
+    if(this.lastDragXY.x === cellX && this.lastDragXY.y === cellY){
+      return;
+    }
+    this.flipCell(cellX,cellY);
+  }
+  lastDragXY:{x:number,y:number} = {x:-1,y:-1};
+  clickDrag(mouseX: number, mouseY: number){
+    let cellX = Math.floor(mouseX / this.cellWidth);
+    let cellY = Math.floor(mouseY / this.cellHeight);
+    if(this.lastDragXY.x === cellX && this.lastDragXY.y === cellY){
+      return;
+    }
+    this.lastDragXY.x = cellX;
+    this.lastDragXY.y = cellY;
+    this.flipCell(cellX,cellY);
   }
   isCellAlive(x: number, y: number) {
     return this.isInBounds(x, y) ? (this.cells[x][y] ? 1 : 0) : 0;

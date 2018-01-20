@@ -39,6 +39,10 @@ function mouseClicked() {
     world.click(mouseX, mouseY);
     return false;
 }
+function mouseDragged() {
+    world.clickDrag(mouseX, mouseY);
+    return false;
+}
 var Grid = (function () {
     function Grid(columns, rows) {
         this.columns = columns;
@@ -67,6 +71,7 @@ var GameOfLife = (function (_super) {
     __extends(GameOfLife, _super);
     function GameOfLife(columns, rows) {
         var _this = _super.call(this, columns, rows) || this;
+        _this.lastDragXY = { x: -1, y: -1 };
         _this.cellWidth = _super.prototype.columnSize.call(_this);
         _this.cellHeight = _super.prototype.rowSize.call(_this);
         _this.cells = num(0, columns).map(function (e) { return num(0, rows).map(function (isAlive) { return random() > 0.5; }); });
@@ -78,7 +83,22 @@ var GameOfLife = (function (_super) {
         }
     };
     GameOfLife.prototype.click = function (mouseX, mouseY) {
-        this.flipCell(Math.floor(mouseX / this.cellWidth), Math.floor(mouseY / this.cellHeight));
+        var cellX = Math.floor(mouseX / this.cellWidth);
+        var cellY = Math.floor(mouseY / this.cellHeight);
+        if (this.lastDragXY.x === cellX && this.lastDragXY.y === cellY) {
+            return;
+        }
+        this.flipCell(cellX, cellY);
+    };
+    GameOfLife.prototype.clickDrag = function (mouseX, mouseY) {
+        var cellX = Math.floor(mouseX / this.cellWidth);
+        var cellY = Math.floor(mouseY / this.cellHeight);
+        if (this.lastDragXY.x === cellX && this.lastDragXY.y === cellY) {
+            return;
+        }
+        this.lastDragXY.x = cellX;
+        this.lastDragXY.y = cellY;
+        this.flipCell(cellX, cellY);
     };
     GameOfLife.prototype.isCellAlive = function (x, y) {
         return this.isInBounds(x, y) ? (this.cells[x][y] ? 1 : 0) : 0;
